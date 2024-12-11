@@ -12,13 +12,17 @@ class DeltaDINO(nn.Module):
                  down_stride=2,
                  padding_mode="reflect",
                  downsample_layers=[True, True, True, False],
-                 vit_stride=7
+                 vit_stride=7,
+                 last_channel_dim=1024
                  ):
         super(DeltaDINO, self).__init__()
         
         self.downsample_layers = downsample_layers
         self.vit_stride = vit_stride
         self.down_stride = down_stride
+
+        # 
+        channels[-1] = last_channel_dim
         
         # create layers
         self.layers_list = []
