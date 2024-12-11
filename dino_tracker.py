@@ -96,12 +96,17 @@ class DINOTracker():
             "cyc_n_frames": self.config["cyc_n_frames"],
             "cyc_batch_size_per_frame": self.config["cyc_batch_size_per_frame"],
             "cyc_fg_points_ratio": self.config["cyc_fg_points_ratio"],
-            "cyc_thresh": self.config["cyc_thresh"]
+            "cyc_thresh": self.config["cyc_thresh"],
+
+            # 
+            "use_cnn_refiner": self.config["use_cnn_refiner"],
+            "last_channel_dim": self.config["last_channel_dim"]
         }
         
         model = Tracker(**tracker_args).to(device)
             
         self.init_iter = get_last_ckpt_iter(self.ckpt_folder)
+        self.init_iter = 0 #
         if self.init_iter > 0:
             model.load_weights(self.init_iter)
         
@@ -396,7 +401,7 @@ class DINOTracker():
         checkpoint_interval = self.config["checkpoint_interval"]
         sampler_batch_iterations = self.config.get("sampler_batch_iterations", 100_000) # only relevant if in config, 100k is never reached
 
-        self.load_dino_best_buddies()
+        # self.load_dino_best_buddies()
         train_sampler = self.get_sampler()
         model, optimizer, scheduler = self.train_setup()
         self.set_model_train(model)
@@ -411,28 +416,28 @@ class DINOTracker():
             tracking_loss = self.of_loss_fn(coords, labels).mean()
             loss = tracking_loss
             
-            if i >= self.config.get("apply_cyc_after", 0):
-                consistent_track_loss = self.get_cycle_consistency_loss(model, inputs)
-                loss += self.config["lambda_cyc"] * consistent_track_loss
+            # if i >= self.config.get("apply_cyc_after", 0):
+            #     consistent_track_loss = self.get_cycle_consistency_loss(model, inputs)
+            #     loss += self.config["lambda_cyc"] * consistent_track_loss
 
-            if i >= self.config.get("apply_cl_ref_after", 0):
-                loss_cl_refiner = self.get_refiner_contrastive_loss(model, frames_set_t=inputs[-1])
-                loss += self.config["lambda_cl_ref_bb"] * loss_cl_refiner
+            # if i >= self.config.get("apply_cl_ref_after", 0):
+            #     loss_cl_refiner = self.get_refiner_contrastive_loss(model, frames_set_t=inputs[-1])
+            #     loss += self.config["lambda_cl_ref_bb"] * loss_cl_refiner
 
-            loss_cl_dino_bb = self.get_dino_bb_contrastive_loss(model, frames_set_t=inputs[-1])
-            loss_emb_norm_reg = self.get_emb_norm_regularization_loss(model.module if hasattr(model, "module") else model)
-            loss_angle_reg = self.get_emb_angle_regularization_loss(model.module if hasattr(model, "module") else model)
+            # loss_cl_dino_bb = self.get_dino_bb_contrastive_loss(model, frames_set_t=inputs[-1])
+            # loss_emb_norm_reg = self.get_emb_norm_regularization_loss(model.module if hasattr(model, "module") else model)
+            # loss_angle_reg = self.get_emb_angle_regularization_loss(model.module if hasattr(model, "module") else model)
             
-            loss += self.config["lambda_cl_dino_bb"] * loss_cl_dino_bb + self.config["lambda_emb_norm"] * loss_emb_norm_reg + self.config["lambda_angle"] * loss_angle_reg
+            # loss += self.config["lambda_cl_dino_bb"] * loss_cl_dino_bb + self.config["lambda_emb_norm"] * loss_emb_norm_reg + self.config["lambda_angle"] * loss_angle_reg
             loss.backward()
             optimizer.step()
             scheduler.step()
             
             # logging losses
-            self.update_losses(loss.item(), tracking_loss.item(), loss_cl_dino_bb.item(),
-                               loss_cl_refiner.item() if i >= self.config.get("apply_cl_ref_after", 0) else 0,
-                               loss_emb_norm_reg.item(), loss_angle_reg.item(),
-                               consistent_track_loss.item() if i >= self.config.get("apply_cyc_after", 0) else 0)
+            # self.update_losses(loss.item(), tracking_loss.item(), loss_cl_dino_bb.item(),
+            #                    loss_cl_refiner.item() if i >= self.config.get("apply_cl_ref_after", 0) else 0,
+            #                    loss_emb_norm_reg.item(), loss_angle_reg.item(),
+            #                    consistent_track_loss.item() if i >= self.config.get("apply_cyc_after", 0) else 0)
             if i % 100 == 0:
                 self.log_losses(i, log_interval=100)
             
