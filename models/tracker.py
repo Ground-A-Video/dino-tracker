@@ -27,7 +27,9 @@ class Tracker(nn.Module):
         cyc_n_frames=4,
         cyc_batch_size_per_frame=256,
         cyc_fg_points_ratio=0.7,
-        cyc_thresh=4
+        cyc_thresh=4,
+        use_cnn_refiner=True,
+        last_channel_dim=1024,
         ):
         super().__init__()
 
@@ -48,12 +50,12 @@ class Tracker(nn.Module):
         self.load_dino_embed_video()
 
         # Delta-DINO
-        self.delta_dino = DeltaDINO(vit_stride=self.stride).to(device)
+        self.delta_dino = DeltaDINO(vit_stride=self.stride, last_channel_dim=last_channel_dim).to(device)
 
         # CNN-Refiner
         t, c, h, w = self.video.shape
         self.cmap_relu = nn.ReLU(inplace=True)
-        self.tracker_head = TrackerHead(use_cnn_refiner=True,
+        self.tracker_head = TrackerHead(use_cnn_refiner=use_cnn_refiner,
                                         patch_size=dino_patch_size,
                                         step_h=stride,
                                         step_w=stride,
